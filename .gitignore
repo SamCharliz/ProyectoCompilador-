@@ -1,0 +1,13 @@
+# Archivos compilados
+*.out
+*.o
+
+# Logs
+*.log
+
+# Archivos temporales
+*.tmp
+
+# Carpetas de dependencias
+node_modules/
+venv/
