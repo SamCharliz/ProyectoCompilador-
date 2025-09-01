@@ -1,6 +1,8 @@
 package com.compiler.lexer;
 
 import java.util.Set;
+import java.util.HashSet;
+import java.util.Stack;
 
 import com.compiler.lexer.nfa.NFA;
 import com.compiler.lexer.nfa.State;
@@ -21,16 +23,14 @@ import com.compiler.lexer.nfa.State;
  * The class also provides a helper method to compute the ε-closure of a given state, which is the set of all states
  * reachable from the given state using only ε-transitions.
  */
-/**
- * Simulator for running input strings on an NFA.
- */
 public class NfaSimulator {
+    
     /**
      * Default constructor for NfaSimulator.
      */
-        public NfaSimulator() {
-            // TODO: Implement constructor if needed
-        }
+    public NfaSimulator() {
+        // No initialization needed
+    }
 
     /**
      * Simulates the NFA on the given input string.
@@ -42,38 +42,90 @@ public class NfaSimulator {
      * @return True if the input is accepted by the NFA, false otherwise.
      */
     public boolean simulate(NFA nfa, String input) {
-        // TODO: Implement simulate
-        /*
-         Pseudocode:
-         1. Initialize currentStates with epsilon-closure of NFA start state
-         2. For each character in input:
-              - For each state in currentStates:
-                  - For each transition:
-                      - If transition symbol matches character:
-                          - Add epsilon-closure of destination state to nextStates
-              - Set currentStates to nextStates
-         3. After input, if any state in currentStates is final, return true
-         4. Otherwise, return false
-        */
-        throw new UnsupportedOperationException("Not implemented");
+        if (nfa == null) {
+            throw new IllegalArgumentException("NFA cannot be null");
+        }
+        if (input == null) {
+            input = ""; // Handle null input as empty string
+        }
+
+        // 1. Initialize currentStates with epsilon-closure of NFA start state
+        Set<State> currentStates = epsilonClosure(nfa.getStartState());
+
+        // 2. Process each character in the input
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+            Set<State> nextStates = new HashSet<>();
+
+            // For each state in currentStates
+            for (State state : currentStates) {
+                // Get all transitions for the current character
+                for (State nextState : state.getTransitions(c)) {
+                    // Add epsilon-closure of each reachable state
+                    nextStates.addAll(epsilonClosure(nextState));
+                }
+            }
+
+            currentStates = nextStates;
+            
+            // If no states remain, the input is rejected
+            if (currentStates.isEmpty()) {
+                return false;
+            }
+        }
+
+        // 3. Check if any final state is in currentStates
+        for (State state : currentStates) {
+            if (state.isAccepting()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
-     * Computes the epsilon-closure: all states reachable from 'start' using only epsilon (null) transitions.
+     * Computes the epsilon-closure of a state: all states reachable via epsilon transitions.
+     * Uses iterative DFS to avoid stack overflow with large NFAs.
      *
      * @param start The starting state.
-     * @param closureSet The set to accumulate reachable states.
+     * @return Set of all states in the epsilon-closure.
      */
-    private void addEpsilonClosure(State start, Set<State> closureSet) {
-        // TODO: Implement addEpsilonClosure
-        /*
-         Pseudocode:
-         If start not in closureSet:
-             - Add start to closureSet
-             - For each transition in start:
-                 - If transition symbol is null:
-                     - Recursively add epsilon-closure of destination state
-        */
-        throw new UnsupportedOperationException("Not implemented");
+    private Set<State> epsilonClosure(State start) {
+        Set<State> closure = new HashSet<>();
+        Stack<State> stack = new Stack<>();
+        
+        stack.push(start);
+        closure.add(start);
+        
+        while (!stack.isEmpty()) {
+            State current = stack.pop();
+            
+            // Get all epsilon transitions from current state
+            for (State epsilonState : current.getEpsilonTransitions()) {
+                if (!closure.contains(epsilonState)) {
+                    closure.add(epsilonState);
+                    stack.push(epsilonState);
+                }
+            }
+        }
+        
+        return closure;
+    }
+
+    /**
+     * Alternative recursive implementation of epsilon-closure (for reference)
+     * Note: May cause stack overflow with large NFAs.
+     */
+    private void addEpsilonClosureRecursive(State state, Set<State> closure) {
+        if (closure.contains(state)) {
+            return;
+        }
+        
+        closure.add(state);
+        
+        for (State epsilonState : state.getEpsilonTransitions()) {
+            addEpsilonClosureRecursive(epsilonState, closure);
+        }
     }
 }

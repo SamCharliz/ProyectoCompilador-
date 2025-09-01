@@ -1,21 +1,13 @@
 package com.compiler;
 
-import java.util.Map;
-import java.util.Set;
-
-import com.compiler.lexer.DfaMinimizer;
-import com.compiler.lexer.DfaSimulator;
-import com.compiler.lexer.NfaToDfaConverter;
-import com.compiler.lexer.dfa.DFA;
-import com.compiler.lexer.dfa.DfaState;
 import com.compiler.lexer.nfa.NFA;
 import com.compiler.lexer.regex.RegexParser;
+import com.compiler.lexer.NfaSimulator;
+
 /**
- * Main class for demonstrating regex to NFA, DFA conversion, minimization, and simulation.
- * This class builds an automaton from a regular expression, minimizes it, and tests several input strings.
- */
-/**
- * Main class for demonstrating regex to NFA, DFA conversion, minimization, and simulation.
+ * Main class for demonstrating regex to NFA conversion and simulation.
+ * This class builds an NFA from a regular expression and tests input strings.
+ * (Práctica 2 - Parte 1: Solo conversión Regex → NFA)
  */
 public class Main {
     /**
@@ -24,71 +16,44 @@ public class Main {
     public Main() {}
 
     /**
-     * Entry point for the automaton demo.
+     * Entry point for the NFA demo.
      * Steps:
      * 1. Parse regex to NFA
-     * 2. Convert NFA to DFA
-     * 3. Minimize DFA
-     * 4. Simulate DFA with test strings
+     * 2. Simulate NFA with test strings
      *
      * @param args Command-line arguments (not used)
      */
     public static void main(String[] args) {
         // --- CONFIGURATION ---
         String regex = "a(b|c)*";
-        Set<Character> alphabet = Set.of('a', 'b', 'c');
         String[] testStrings = {"a", "ab", "ac", "abbc", "acb", "", "b", "abcabc"};
 
-        System.out.println("Testing Regex: " + regex + "\n");
+        System.out.println("=== PRÁCTICA 2 - PARTE 1 ===");
+        System.out.println("=== CONVERSIÓN REGEX → NFA ===\n");
+        System.out.println("Testing Regex: " + regex);
 
-        // --- STEP 1: Regex -> NFA ---
-        RegexParser parser = new RegexParser();
-        NFA nfa = parser.parse(regex);
-        nfa.endState.isFinal = true;
+        try {
+            // --- STEP 1: Regex -> NFA---
+            RegexParser parser = new RegexParser();
+            NFA nfa = parser.parse(regex);
+            
+            System.out.println("\n--- NFA CREADO EXITOSAMENTE ---");
+            System.out.println("NFA Start State: q" + nfa.getStartState().getId());
+            System.out.println("NFA End State: q" + nfa.getEndState().getId() + 
+                             " (Final: " + nfa.isEndStateAccepting() + ")");
 
-        // --- STEP 2: NFA -> DFA ---
-        DFA dfa = NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
-        System.out.println("--- Original DFA ---");
-        visualizeDfa(dfa);
-
-        // --- STEP 3: DFA Minimization ---
-        DFA minimizedDfa = DfaMinimizer.minimizeDfa(dfa, alphabet);
-        System.out.println("--- Minimized DFA ---");
-        visualizeDfa(minimizedDfa);
-
-        // --- STEP 4: DFA Simulation ---
-        DfaSimulator dfaSimulator = new DfaSimulator();
-        System.out.println("--- Testing Simulator with Minimized DFA ---");
-
-        for (String s : testStrings) {
-            boolean accepted = dfaSimulator.simulate(minimizedDfa, s);
-            System.out.println("String '" + s + "': " + (accepted ? "Accepted" : "Rejected"));
-        }
-    }
-
-    /**
-     * Prints a textual representation of the DFA structure for debugging purposes.
-     * States and transitions are shown in a readable format.
-     *
-     * @param dfa The DFA to visualize.
-     */
-    public static void visualizeDfa(DFA dfa) {
-        System.out.println("Start State: D" + dfa.startState.id);
-        for (DfaState state : dfa.allStates) {
-            StringBuilder sb = new StringBuilder();
-            sb.append("State D").append(state.id);
-            if (state.isFinal) {
-                sb.append(" (Final)");
+            // --- STEP 2: NFA Simulation (para demostrar que funciona) ---
+            NfaSimulator nfaSimulator = new NfaSimulator();
+            System.out.println("\n--- SIMULACIÓN NFA ---");
+            
+            for (String s : testStrings) {
+                boolean accepted = nfaSimulator.simulate(nfa, s);
+                System.out.println("String '" + s + "': " + (accepted ? "Accepted" : "Rejected"));
             }
-            sb.append(":");
-            // Sort transitions by character for consistent output
-            state.transitions.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .forEach(entry -> {
-                    sb.append("\n  --'").append(entry.getKey()).append("'--> D").append(entry.getValue().id);
-                });
-            System.out.println(sb.toString());
+
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+            e.printStackTrace();
         }
-        System.out.println("------------------------\n");
     }
 }

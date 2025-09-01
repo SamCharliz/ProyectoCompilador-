@@ -4,134 +4,144 @@ import java.util.Stack;
 
 import com.compiler.lexer.nfa.NFA;
 
-/**
- * RegexParser
- * -----------
- * This class provides functionality to convert infix regular expressions into nondeterministic finite automata (NFA)
- * using Thompson's construction algorithm. It supports standard regex operators: concatenation (·), union (|),
- * Kleene star (*), optional (?), and plus (+). The conversion process uses the Shunting Yard algorithm to transform
- * infix regex into postfix notation, then builds the corresponding NFA.
- *
- * Features:
- * - Parses infix regular expressions and converts them to NFA.
- * - Supports regex operators: concatenation, union, Kleene star, optional, plus.
- * - Implements Thompson's construction rules for NFA generation.
- *
- * Example usage:
- * <pre>
- *     RegexParser parser = new RegexParser();
- *     NFA nfa = parser.parse("a(b|c)*");
- * </pre>
- */
-/**
- * Parses regular expressions and constructs NFAs using Thompson's construction.
- */
 public class RegexParser {
-    /**
-     * Default constructor for RegexParser.
-     */
-        public RegexParser() {
-            // TODO: Implement constructor if needed
-        }
 
-    /**
-     * Converts an infix regular expression to an NFA.
-     *
-     * @param infixRegex The regular expression in infix notation.
-     * @return The constructed NFA.
-     */
+    public RegexParser() {
+        // No initialization needed
+    }
+
     public NFA parse(String infixRegex) {
-    // TODO: Implement parse
-    // Pseudocode: Convert infix to postfix, then build NFA from postfix
-    throw new UnsupportedOperationException("Not implemented");
+        if (infixRegex == null || infixRegex.isEmpty()) {
+            throw new IllegalArgumentException("Regular expression cannot be null or empty");
+        }
+        
+        // PRIMERO: Insertar concatenación explícita
+        String withConcatenation = insertExplicitConcatenation(infixRegex);
+        System.out.println("With concatenation: " + withConcatenation);
+        
+        // SEGUNDO: Convertir a postfijo usando ShuntingYard
+        String postfix = ShuntingYard.toPostfix(withConcatenation);
+        System.out.println("Postfix expression: " + postfix);
+        
+        // TERCERO: Construir NFA
+        return buildNfaFromPostfix(postfix);
     }
 
     /**
-     * Builds an NFA from a postfix regular expression.
-     *
-     * @param postfixRegex The regular expression in postfix notation.
-     * @return The constructed NFA.
+     * Inserta operadores de concatenación explícitos donde sea necesario
      */
+    private String insertExplicitConcatenation(String regex) {
+        if (regex.isEmpty()) return regex;
+        
+        StringBuilder result = new StringBuilder();
+        char prev = regex.charAt(0);
+        result.append(prev);
+        
+        for (int i = 1; i < regex.length(); i++) {
+            char current = regex.charAt(i);
+            
+            // Condiciones para insertar concatenación explícita
+            boolean needsConcatenation = 
+                (isOperand(prev) && (isOperand(current) || current == '(')) ||
+                (prev == ')' && (isOperand(current) || current == '(')) ||
+                (prev == '*' && (isOperand(current) || current == '(')) ||
+                (prev == '?' && (isOperand(current) || current == '(')) ||
+                (prev == '+' && (isOperand(current) || current == '('));
+            
+            if (needsConcatenation) {
+                result.append('.');
+            }
+            
+            result.append(current);
+            prev = current;
+        }
+        
+        return result.toString();
+    }
+
     private NFA buildNfaFromPostfix(String postfixRegex) {
-    // TODO: Implement buildNfaFromPostfix
-    // Pseudocode: For each char in postfix, handle operators and operands using a stack
-    throw new UnsupportedOperationException("Not implemented");
+        Stack<NFA> nfaStack = new Stack<>();
+        
+        for (char c : postfixRegex.toCharArray()) {
+            if (isOperand(c)) {
+                nfaStack.push(NFA.createForCharacter(c));
+            } else {
+                switch (c) {
+                    case '.':
+                        handleConcatenation(nfaStack);
+                        break;
+                    case '|':
+                        handleUnion(nfaStack);
+                        break;
+                    case '*':
+                        handleKleeneStar(nfaStack);
+                        break;
+                    case '?':
+                        handleOptional(nfaStack);
+                        break;
+                    case '+':
+                        handlePlus(nfaStack);
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Unknown operator: " + c);
+                }
+            }
+        }
+        
+        if (nfaStack.size() != 1) {
+            throw new IllegalArgumentException("Invalid regular expression: multiple NFAs remaining");
+        }
+        
+        return nfaStack.pop();
     }
 
-    /**
-     * Handles the '?' operator (zero or one occurrence).
-     * Pops an NFA from the stack and creates a new NFA that accepts zero or one occurrence.
-     * @param stack The NFA stack.
-     */
     private void handleOptional(Stack<NFA> stack) {
-    // TODO: Implement handleOptional
-    // Pseudocode: Pop NFA, create new start/end, add epsilon transitions for zero/one occurrence
-    throw new UnsupportedOperationException("Not implemented");
+        if (stack.isEmpty()) {
+            throw new IllegalArgumentException("Not enough NFAs for optional operation");
+        }
+        NFA nfa = stack.pop();
+        stack.push(NFA.optional(nfa));
     }
 
-    /**
-     * Handles the '+' operator (one or more occurrences).
-     * Pops an NFA from the stack and creates a new NFA that accepts one or more occurrences.
-     * @param stack The NFA stack.
-     */
     private void handlePlus(Stack<NFA> stack) {
-    // TODO: Implement handlePlus
-    // Pseudocode: Pop NFA, create new start/end, add transitions for one or more occurrence
-    throw new UnsupportedOperationException("Not implemented");
-    }
-    
-    /**
-     * Creates an NFA for a single character.
-     * @param c The character to create an NFA for.
-     * @return The constructed NFA.
-     */
-    private NFA createNfaForCharacter(char c) {
-    // TODO: Implement createNfaForCharacter
-    // Pseudocode: Create start/end state, add transition for character
-    throw new UnsupportedOperationException("Not implemented");
+        if (stack.isEmpty()) {
+            throw new IllegalArgumentException("Not enough NFAs for plus operation");
+        }
+        NFA nfa = stack.pop();
+        stack.push(NFA.plus(nfa));
     }
 
-    /**
-     * Handles the concatenation operator (·).
-     * Pops two NFAs from the stack and connects them in sequence.
-     * @param stack The NFA stack.
-     */
     private void handleConcatenation(Stack<NFA> stack) {
-    // TODO: Implement handleConcatenation
-    // Pseudocode: Pop two NFAs, connect end of first to start of second
-    throw new UnsupportedOperationException("Not implemented");
+        if (stack.size() < 2) {
+            throw new IllegalArgumentException("Not enough NFAs for concatenation");
+        }
+        NFA right = stack.pop();
+        NFA left = stack.pop();
+        stack.push(NFA.concatenate(left, right));
     }
 
-    /**
-     * Handles the union operator (|).
-     * Pops two NFAs from the stack and creates a new NFA that accepts either.
-     * @param stack The NFA stack.
-     */
     private void handleUnion(Stack<NFA> stack) {
-    // TODO: Implement handleUnion
-    // Pseudocode: Pop two NFAs, create new start/end, add epsilon transitions for union
-    throw new UnsupportedOperationException("Not implemented");
+        if (stack.size() < 2) {
+            throw new IllegalArgumentException("Not enough NFAs for union");
+        }
+        NFA right = stack.pop();
+        NFA left = stack.pop();
+        stack.push(NFA.union(left, right));
     }
 
-    /**
-     * Handles the Kleene star operator (*).
-     * Pops an NFA from the stack and creates a new NFA that accepts zero or more repetitions.
-     * @param stack The NFA stack.
-     */
     private void handleKleeneStar(Stack<NFA> stack) {
-    // TODO: Implement handleKleeneStar
-    // Pseudocode: Pop NFA, create new start/end, add transitions for zero or more repetitions
-    throw new UnsupportedOperationException("Not implemented");
+        if (stack.isEmpty()) {
+            throw new IllegalArgumentException("Not enough NFAs for Kleene star");
+        }
+        NFA nfa = stack.pop();
+        stack.push(NFA.kleeneStar(nfa));
     }
 
-    /**
-     * Checks if a character is an operand (not an operator).
-     * @param c The character to check.
-     * @return True if the character is an operand, false if it is an operator.
-     */
+    private boolean isOperator(char c) {
+        return c == '|' || c == '.' || c == '*' || c == '?' || c == '+';
+    }
+
     private boolean isOperand(char c) {
-    // TODO: Implement isOperand
-    // Pseudocode: Return true if c is not an operator
-    throw new UnsupportedOperationException("Not implemented");
+        return !isOperator(c) && c != '(' && c != ')';
     }
 }
