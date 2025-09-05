@@ -16,22 +16,22 @@ import com.compiler.lexer.nfa.State;
  */
 public class DfaState {
     private static int nextId = 0;
-    
+
     /**
      * Unique identifier for this DFA state.
      */
     public final int id;
-    
+
     /**
      * The set of NFA states this DFA state represents.
      */
-    public final Set<State> nfaStates;
-    
+    private final Set<State> nfaStates;
+
     /**
      * Indicates whether this DFA state is a final (accepting) state.
      */
     private boolean isFinal;
-    
+
     /**
      * Map of input symbols to destination DFA states (transitions).
      */
@@ -45,15 +45,7 @@ public class DfaState {
         this.id = nextId++;
         this.nfaStates = nfaStates;
         this.transitions = new HashMap<>();
-        this.isFinal = false;
-        
-        // Check if this DFA state should be final (if any of the NFA states is final)
-        for (State nfaState : nfaStates) {
-            if (nfaState.isFinal()) {
-                this.isFinal = true;
-                break;
-            }
-        }
+        this.isFinal = nfaStates.stream().anyMatch(State::isFinal);
     }
 
     /**
@@ -97,7 +89,7 @@ public class DfaState {
     public int hashCode() {
         return Objects.hash(nfaStates);
     }
-    
+
     /**
      * Returns a string representation of the DFA state, including its id and finality.
      * @return String representation of the state.
@@ -113,9 +105,9 @@ public class DfaState {
 
     /**
      * Sets the finality of the DFA state.
-     * @param isFinal True if this state is a final state, false otherwise.
+     * (Should be used only by the converter when creating sink/final states.)
      */
-    public void setFinal(boolean isFinal) {
+    void setFinal(boolean isFinal) {
         this.isFinal = isFinal;
     }
 
@@ -140,7 +132,7 @@ public class DfaState {
      * Returns the set of NFA states this DFA state represents.
      * @return The set of NFA states.
      */
-    public Set<State> getName() {
+    public Set<State> getNfaStates() {
         return nfaStates;
     }
 
@@ -167,5 +159,12 @@ public class DfaState {
      */
     public int getTransitionCount() {
         return transitions.size();
+    }
+
+    /**
+     * Resets the static ID counter (useful when rebuilding a DFA).
+     */
+    public static void resetIdCounter() {
+        nextId = 0;
     }
 }
