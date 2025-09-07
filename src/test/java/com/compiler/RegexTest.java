@@ -1,18 +1,63 @@
 package com.compiler;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+
+import com.compiler.lexer.dfa.DFA;
+import com.compiler.lexer.DfaSimulator;
+
+
+
 import com.compiler.lexer.NfaSimulator;
+import com.compiler.lexer.NfaToDfaConverter;
 import com.compiler.lexer.nfa.NFA;
 import com.compiler.lexer.regex.RegexParser;
 
 public class RegexTest {
 
+    private void runTest(String regex, String input, boolean expected, char... symbols) {
+        // Parse regex -> NFA
+        RegexParser parser = new RegexParser();
+        NFA nfa = parser.parse(regex);
+        nfa.endState.isFinal = true;
+
+        // Simulación NFA
+        NfaSimulator nfaSimulator = new NfaSimulator();
+        boolean actualNfa = nfaSimulator.simulate(nfa, input);
+
+        // Construir alfabeto
+        Set<Character> alphabet = new HashSet<>();
+        for (char c : symbols) alphabet.add(c);
+
+        // Convertir NFA a DFA
+        DFA dfa = NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
+        DfaSimulator dfaSimulator = new DfaSimulator();
+        boolean actualDfa = dfaSimulator.simulate(dfa, input);
+
+        // Imprimir detalles
+        System.out.println("======================================");
+        System.out.println("Regex: '" + regex + "'");
+        System.out.println("Input: '" + input + "'");
+        System.out.println("Esperado: " + expected);
+        System.out.println("Resultado NFA: " + actualNfa);
+        System.out.println("Resultado DFA: " + actualDfa);
+        System.out.println("DFA States: " + dfa.getStates().size());
+        System.out.println("DFA Transitions:");
+        dfa.printTransitions(); // Asegúrate de tener este método en tu clase DFA
+        System.out.println("======================================\n");
+
+        // Comprobaciones
+        assertEquals(expected, actualNfa, "NFA fallo para la cadena: '" + input + "'");
+        assertEquals(expected, actualDfa, "DFA fallo para la cadena: '" + input + "'");
+    }
+
     @ParameterizedTest
     @CsvSource({
-        // a+
         "a,      true",
         "aa,     true",
         "aaaa,   true",
@@ -20,51 +65,22 @@ public class RegexTest {
         "b,      false"
     })
     void testPlusOperator(String input, boolean expected) {
-        String regex = "a+";
-        RegexParser parser = new RegexParser();
-        NFA nfa = parser.parse(regex);
-        nfa.endState.isFinal = true;
-        NfaSimulator nfaSimulator = new NfaSimulator();
-        boolean actualNfa = nfaSimulator.simulate(nfa, input);
-        // DFA
-    // Set<Character> alphabet = new HashSet<>();
-    // alphabet.add('a');
-    // DFA phase commented out for now
-    // DFA dfa = com.compiler.lexer.NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
-    // com.compiler.lexer.DfaSimulator dfaSimulator = new com.compiler.lexer.DfaSimulator();
-    // boolean actualDfa = dfaSimulator.simulate(dfa, input);
-    assertEquals(expected, actualNfa, "NFA fallo para la cadena: '" + input + "'");
-    // assertEquals(expected, actualDfa, "DFA fallo para la cadena: '" + input + "'");
+        runTest("a+", input, expected, 'a');
     }
 
     @ParameterizedTest
     @CsvSource({
-        // a?
         "'',     true",
         "a,      true",
         "aa,     false",
         "b,      false"
     })
     void testOptionalOperator(String input, boolean expected) {
-        String regex = "a?";
-        RegexParser parser = new RegexParser();
-        NFA nfa = parser.parse(regex);
-        nfa.endState.isFinal = true;
-        NfaSimulator nfaSimulator = new NfaSimulator();
-        boolean actualNfa = nfaSimulator.simulate(nfa, input);
-    // Set<Character> alphabet = new HashSet<>();
-    // alphabet.add('a');
-    // DFA phase commented out for now
-    // DFA dfa = com.compiler.lexer.NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
-    // com.compiler.lexer.DfaSimulator dfaSimulator = new com.compiler.lexer.DfaSimulator();
-    // boolean actualDfa = dfaSimulator.simulate(dfa, input);
-    assertEquals(expected, actualNfa, "NFA fallo para la cadena: '" + input + "'");
-    // assertEquals(expected, actualDfa, "DFA fallo para la cadena: '" + input + "'");
+        runTest("a?", input, expected, 'a');
     }
 
     @ParameterizedTest
     @CsvSource({
-        // a|b
         "a,      true",
         "b,      true",
         "'',     false",
@@ -72,26 +88,11 @@ public class RegexTest {
         "ab,     false"
     })
     void testUnionOperator(String input, boolean expected) {
-        String regex = "a|b";
-        RegexParser parser = new RegexParser();
-        NFA nfa = parser.parse(regex);
-        nfa.endState.isFinal = true;
-        NfaSimulator nfaSimulator = new NfaSimulator();
-        boolean actualNfa = nfaSimulator.simulate(nfa, input);
-    // Set<Character> alphabet = new HashSet<>();
-    // alphabet.add('a');
-    // alphabet.add('b');
-    // DFA phase commented out for now
-    // DFA dfa = com.compiler.lexer.NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
-    // com.compiler.lexer.DfaSimulator dfaSimulator = new com.compiler.lexer.DfaSimulator();
-    // boolean actualDfa = dfaSimulator.simulate(dfa, input);
-    assertEquals(expected, actualNfa, "NFA fallo para la cadena: '" + input + "'");
-    // assertEquals(expected, actualDfa, "DFA fallo para la cadena: '" + input + "'");
+        runTest("a|b", input, expected, 'a', 'b');
     }
 
     @ParameterizedTest
     @CsvSource({
-        // ab|c
         "ab,     true",
         "c,      true",
         "a,      false",
@@ -99,27 +100,11 @@ public class RegexTest {
         "ac,     false"
     })
     void testPrecedenceConcatOverUnion(String input, boolean expected) {
-        String regex = "ab|c";
-        RegexParser parser = new RegexParser();
-        NFA nfa = parser.parse(regex);
-        nfa.endState.isFinal = true;
-        NfaSimulator nfaSimulator = new NfaSimulator();
-        boolean actualNfa = nfaSimulator.simulate(nfa, input);
-    // Set<Character> alphabet = new HashSet<>();
-    // alphabet.add('a');
-    // alphabet.add('b');
-    // alphabet.add('c');
-    // DFA phase commented out for now
-    // DFA dfa = com.compiler.lexer.NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
-    // com.compiler.lexer.DfaSimulator dfaSimulator = new com.compiler.lexer.DfaSimulator();
-    // boolean actualDfa = dfaSimulator.simulate(dfa, input);
-    assertEquals(expected, actualNfa, "NFA fallo para la cadena: '" + input + "'");
-    // assertEquals(expected, actualDfa, "DFA fallo para la cadena: '" + input + "'");
+        runTest("ab|c", input, expected, 'a', 'b', 'c');
     }
 
     @ParameterizedTest
     @CsvSource({
-        // ab*c
         "ac,     true",
         "abc,    true",
         "abbbc,  true",
@@ -129,27 +114,11 @@ public class RegexTest {
         "bc,     false"
     })
     void testPrecedenceKleeneOverConcat(String input, boolean expected) {
-        String regex = "ab*c";
-        RegexParser parser = new RegexParser();
-        NFA nfa = parser.parse(regex);
-        nfa.endState.isFinal = true;
-        NfaSimulator nfaSimulator = new NfaSimulator();
-        boolean actualNfa = nfaSimulator.simulate(nfa, input);
-    // Set<Character> alphabet = new HashSet<>();
-    // alphabet.add('a');
-    // alphabet.add('b');
-    // alphabet.add('c');
-    // DFA phase commented out for now
-    // DFA dfa = com.compiler.lexer.NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
-    // com.compiler.lexer.DfaSimulator dfaSimulator = new com.compiler.lexer.DfaSimulator();
-    // boolean actualDfa = dfaSimulator.simulate(dfa, input);
-    assertEquals(expected, actualNfa, "NFA fallo para la cadena: '" + input + "'");
-    // assertEquals(expected, actualDfa, "DFA fallo para la cadena: '" + input + "'");
+        runTest("ab*c", input, expected, 'a', 'b', 'c');
     }
 
     @ParameterizedTest
     @CsvSource({
-        // (a|b)*
         "'',     true",
         "a,      true",
         "b,      true",
@@ -163,26 +132,11 @@ public class RegexTest {
         "bc,     false"
     })
     void testGroupingKleene(String input, boolean expected) {
-        String regex = "(a|b)*";
-        RegexParser parser = new RegexParser();
-        NFA nfa = parser.parse(regex);
-        nfa.endState.isFinal = true;
-        NfaSimulator nfaSimulator = new NfaSimulator();
-        boolean actualNfa = nfaSimulator.simulate(nfa, input);
-    // Set<Character> alphabet = new HashSet<>();
-    // alphabet.add('a');
-    // alphabet.add('b');
-    // DFA phase commented out for now
-    // DFA dfa = com.compiler.lexer.NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
-    // com.compiler.lexer.DfaSimulator dfaSimulator = new com.compiler.lexer.DfaSimulator();
-    // boolean actualDfa = dfaSimulator.simulate(dfa, input);
-    assertEquals(expected, actualNfa, "NFA fallo para la cadena: '" + input + "'");
-    // assertEquals(expected, actualDfa, "DFA fallo para la cadena: '" + input + "'");
+        runTest("(a|b)*", input, expected, 'a', 'b');
     }
 
     @ParameterizedTest
     @CsvSource({
-        // a(b|c)d
         "abd,    true",
         "acd,    true",
         "ad,     false",
@@ -190,28 +144,11 @@ public class RegexTest {
         "'abd d',false"
     })
     void testConcatWithGroupUnion(String input, boolean expected) {
-        String regex = "a(b|c)d";
-        RegexParser parser = new RegexParser();
-        NFA nfa = parser.parse(regex);
-        nfa.endState.isFinal = true;
-        NfaSimulator nfaSimulator = new NfaSimulator();
-        boolean actualNfa = nfaSimulator.simulate(nfa, input);
-    // Set<Character> alphabet = new HashSet<>();
-    // alphabet.add('a');
-    // alphabet.add('b');
-    // alphabet.add('c');
-    // alphabet.add('d');
-    // DFA phase commented out for now
-    // DFA dfa = com.compiler.lexer.NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
-    // com.compiler.lexer.DfaSimulator dfaSimulator = new com.compiler.lexer.DfaSimulator();
-    // boolean actualDfa = dfaSimulator.simulate(dfa, input);
-    assertEquals(expected, actualNfa, "NFA fallo para la cadena: '" + input + "'");
-    // assertEquals(expected, actualDfa, "DFA fallo para la cadena: '" + input + "'");
+        runTest("a(b|c)d", input, expected, 'a', 'b', 'c', 'd');
     }
 
     @ParameterizedTest
     @CsvSource({
-        // a(b*|c+)?
         "ad,     true",
         "abd,    true",
         "abbbd,  true",
@@ -222,53 +159,22 @@ public class RegexTest {
         "abbc,   false"
     })
     void testComplexNesting(String input, boolean expected) {
-        String regex = "a(b*|c+)?d";
-        RegexParser parser = new RegexParser();
-        NFA nfa = parser.parse(regex);
-        nfa.endState.isFinal = true;
-        NfaSimulator nfaSimulator = new NfaSimulator();
-        boolean actualNfa = nfaSimulator.simulate(nfa, input);
-    // Set<Character> alphabet = new HashSet<>();
-    // alphabet.add('a');
-    // alphabet.add('b');
-    // alphabet.add('c');
-    // alphabet.add('d');
-    // DFA phase commented out for now
-    // DFA dfa = com.compiler.lexer.NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
-    // com.compiler.lexer.DfaSimulator dfaSimulator = new com.compiler.lexer.DfaSimulator();
-    // boolean actualDfa = dfaSimulator.simulate(dfa, input);
-    assertEquals(expected, actualNfa, "NFA fallo para la cadena: '" + input + "'");
-    // assertEquals(expected, actualDfa, "DFA fallo para la cadena: '" + input + "'");
+        runTest("a(b*|c+)?d", input, expected, 'a', 'b', 'c', 'd');
     }
 
     @ParameterizedTest
     @CsvSource({
-        // (a*)*
         "'',     true",
         "a,      true",
         "aa,     true",
         "b,      false"
     })
     void testNestedKleene(String input, boolean expected) {
-        String regex = "(a*)*";
-        RegexParser parser = new RegexParser();
-        NFA nfa = parser.parse(regex);
-        nfa.endState.isFinal = true;
-        NfaSimulator nfaSimulator = new NfaSimulator();
-        boolean actualNfa = nfaSimulator.simulate(nfa, input);
-    // Set<Character> alphabet = new HashSet<>();
-    // alphabet.add('a');
-    // DFA phase commented out for now
-    // DFA dfa = com.compiler.lexer.NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
-    // com.compiler.lexer.DfaSimulator dfaSimulator = new com.compiler.lexer.DfaSimulator();
-    // boolean actualDfa = dfaSimulator.simulate(dfa, input);
-    assertEquals(expected, actualNfa, "NFA fallo para la cadena: '" + input + "'");
-    // assertEquals(expected, actualDfa, "DFA fallo para la cadena: '" + input + "'");
+        runTest("(a*)*", input, expected, 'a');
     }
 
     @ParameterizedTest
     @CsvSource({
-        // a(b?)c
         "ac,     true",
         "abc,    true",
         "a,      false",
@@ -277,27 +183,11 @@ public class RegexTest {
         "bc,     false"
     })
     void testOptionalInsideConcat(String input, boolean expected) {
-        String regex = "a(b?)c";
-        RegexParser parser = new RegexParser();
-        NFA nfa = parser.parse(regex);
-        nfa.endState.isFinal = true;
-        NfaSimulator nfaSimulator = new NfaSimulator();
-        boolean actualNfa = nfaSimulator.simulate(nfa, input);
-    // Set<Character> alphabet = new HashSet<>();
-    // alphabet.add('a');
-    // alphabet.add('b');
-    // alphabet.add('c');
-    // DFA phase commented out for now
-    // DFA dfa = com.compiler.lexer.NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
-    // com.compiler.lexer.DfaSimulator dfaSimulator = new com.compiler.lexer.DfaSimulator();
-    // boolean actualDfa = dfaSimulator.simulate(dfa, input);
-    assertEquals(expected, actualNfa, "NFA fallo para la cadena: '" + input + "'");
-    // assertEquals(expected, actualDfa, "DFA fallo para la cadena: '" + input + "'");
+        runTest("a(b?)c", input, expected, 'a', 'b', 'c');
     }
 
     @ParameterizedTest
     @CsvSource({
-        // (a|b)*a(a|b)*
         "a,      true",
         "aa,     true",
         "ab,     true",
@@ -310,20 +200,6 @@ public class RegexTest {
         "bbbb,   false"
     })
     void testContainsAtLeastOneA(String input, boolean expected) {
-        String regex = "(a|b)*a(a|b)*";
-        RegexParser parser = new RegexParser();
-        NFA nfa = parser.parse(regex);
-        nfa.endState.isFinal = true;
-        NfaSimulator nfaSimulator = new NfaSimulator();
-        boolean actualNfa = nfaSimulator.simulate(nfa, input);
-    // Set<Character> alphabet = new HashSet<>();
-    // alphabet.add('a');
-    // alphabet.add('b');
-    // DFA phase commented out for now
-    // DFA dfa = com.compiler.lexer.NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
-    // com.compiler.lexer.DfaSimulator dfaSimulator = new com.compiler.lexer.DfaSimulator();
-    // boolean actualDfa = dfaSimulator.simulate(dfa, input);
-    assertEquals(expected, actualNfa, "NFA fallo para la cadena: '" + input + "'");
-    // assertEquals(expected, actualDfa, "DFA fallo para la cadena: '" + input + "'");
+        runTest("(a|b)*a(a|b)*", input, expected, 'a', 'b');
     }
 }

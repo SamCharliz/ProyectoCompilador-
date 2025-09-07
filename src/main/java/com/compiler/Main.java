@@ -13,24 +13,10 @@ import com.compiler.lexer.regex.RegexParser;
 
 /**
  * Main class for demonstrating regex to NFA, DFA conversion, minimization, and simulation.
- * This class builds an automaton from a regular expression, minimizes it, and tests several input strings.
  */
 public class Main {
-    /**
-     * Default constructor for Main.
-     */
     public Main() {}
 
-    /**
-     * Entry point for the automaton demo.
-     * Steps:
-     * 1. Parse regex to NFA
-     * 2. Convert NFA to DFA
-     * 3. Minimize DFA
-     * 4. Simulate DFA with test strings
-     *
-     * @param args Command-line arguments (not used)
-     */
     public static void main(String[] args) {
         // --- CONFIGURATION ---
         String regex = "a(b|c)*";
@@ -42,7 +28,7 @@ public class Main {
         // --- STEP 1: Regex -> NFA ---
         RegexParser parser = new RegexParser();
         NFA nfa = parser.parse(regex);
-        nfa.getEndState().setFinal(true); // Usar método setter en lugar de acceso directo
+        nfa.endState.setFinal(true); // usa el setter si endState es DfaState/NFA
 
         // --- STEP 2: NFA -> DFA ---
         DFA dfa = NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
@@ -71,20 +57,20 @@ public class Main {
      * @param dfa The DFA to visualize.
      */
     public static void visualizeDfa(DFA dfa) {
-        System.out.println("Start State: D" + dfa.startState.getId()); // Usar getter
+        System.out.println("Start State: D" + dfa.startState.getId());
         for (DfaState state : dfa.allStates) {
             StringBuilder sb = new StringBuilder();
-            sb.append("State D").append(state.getId()); // Usar getter
-            if (state.isFinal()) { // Usar método getter en lugar de campo directo
+            sb.append("State D").append(state.getId());
+            if (state.isFinal()) {
                 sb.append(" (Final)");
             }
             sb.append(":");
-            // Sort transitions by character for consistent output
-            // Usar getTransitions() en lugar de acceso directo al mapa
+            // Usar getter para transitions
             state.getTransitions().entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .forEach(entry -> {
-                    sb.append("\n  --'").append(entry.getKey()).append("'--> D").append(entry.getValue().getId());
+                    sb.append("\n  --'").append(entry.getKey())
+                      .append("'--> D").append(entry.getValue().getId());
                 });
             System.out.println(sb.toString());
         }

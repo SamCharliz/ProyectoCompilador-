@@ -5,35 +5,30 @@ import java.util.Set;
 import java.util.HashSet;
 import java.util.ArrayList;
 
-// Importar la clase DfaMinimizer
 import com.compiler.lexer.DfaMinimizer;
 
 /**
  * DFA
  * ---
- * Represents a complete Deterministic Finite Automaton (DFA).
- * Contains the start state and a list of all states in the automaton.
+ * Represents a Deterministic Finite Automaton (DFA) with a start state,
+ * a set of all states, and an alphabet.
  */
 public class DFA {
-    /**
-     * The starting state of the DFA.
-     */
+
+    /** The starting state of the DFA. */
     public final DfaState startState;
 
-    /**
-     * A list of all states in the DFA.
-     */
+    /** A list of all states in the DFA. */
     public final List<DfaState> allStates;
-    
-    /**
-     * The alphabet of the DFA.
-     */
+
+    /** The alphabet of the DFA. */
     public final Set<Character> alphabet;
 
     /**
      * Constructs a new DFA.
+     *
      * @param startState The starting state of the DFA.
-     * @param allStates  A list of all states in the DFA.
+     * @param allStates  A list of all DFA states.
      * @param alphabet   The alphabet of the DFA.
      */
     public DFA(DfaState startState, List<DfaState> allStates, Set<Character> alphabet) {
@@ -43,151 +38,144 @@ public class DFA {
     }
 
     /**
-     * Checks if a string is accepted by this DFA.
+     * Checks if the DFA accepts a given input string.
+     *
      * @param input The input string to check.
-     * @return true if the string is accepted, false otherwise.
+     * @return true if the DFA accepts the input, false otherwise.
      */
     public boolean accepts(String input) {
         DfaState currentState = startState;
-        
         for (char c : input.toCharArray()) {
             currentState = currentState.getTransition(c);
-            if (currentState == null) {
-                return false; // No transition for this symbol
-            }
+            if (currentState == null) return false;
         }
-        
         return currentState.isFinal();
     }
 
     /**
-     * Minimizes the DFA using the table-filling algorithm.
+     * Minimizes the DFA using a table-filling algorithm.
+     *
      * @return A minimized DFA.
      */
     public DFA minimize() {
-        // Use the DfaMinimizer class to minimize this DFA
         return DfaMinimizer.minimizeDfa(this, this.alphabet);
     }
 
     /**
-     * Returns a string representation of the DFA.
+     * Returns a list of all states in the DFA.
+     *
+     * @return List of all DfaState objects.
      */
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("DFA:\n");
-        sb.append("Alphabet: ").append(alphabet).append("\n");
-        sb.append("Start State: ").append("D").append(startState.getId()).append("\n");
-        sb.append("Final States: ");
-        
-        List<String> finalStateNames = new ArrayList<>();
+    public List<DfaState> getStates() {
+        return allStates;
+    }
+
+    /**
+     * Prints all transitions of the DFA in the format:
+     * D0 -a-> D1
+     * D1 -b-> D2
+     */
+    public void printTransitions() {
         for (DfaState state : allStates) {
-            if (state.isFinal()) {
-                finalStateNames.add("D" + state.getId());
-            }
-        }
-        sb.append(finalStateNames).append("\n");
-        sb.append("States:\n");
-        
-        for (DfaState state : allStates) {
-            sb.append("  D").append(state.getId());
-            if (state.isFinal()) {
-                sb.append(" (Final)");
-            }
-            sb.append(": ");
-            
-            // Show transitions
-            boolean hasTransitions = false;
             for (char symbol : alphabet) {
                 DfaState target = state.getTransition(symbol);
                 if (target != null) {
-                    sb.append(symbol).append("→D").append(target.getId()).append(" ");
-                    hasTransitions = true;
+                    System.out.println("D" + state.getId() + " -" + symbol + "-> D" + target.getId());
                 }
             }
-            
-            if (!hasTransitions) {
-                sb.append("No transitions");
-            }
-            sb.append("\n");
         }
-        
-        return sb.toString();
     }
 
     /**
      * Finds a state by its ID.
-     * @param id The ID of the state to find.
-     * @return The DfaState with the given ID, or null if not found.
+     *
+     * @param id The state ID.
+     * @return The state with the given ID, or null if not found.
      */
     public DfaState findStateById(int id) {
         for (DfaState state : allStates) {
-            if (state.getId() == id) {
-                return state;
-            }
+            if (state.getId() == id) return state;
         }
         return null;
     }
 
     /**
-     * Gets all final states.
-     * @return A list of all final states.
+     * Returns a list of all final states in the DFA.
+     *
+     * @return List of final states.
      */
     public List<DfaState> getFinalStates() {
-        List<DfaState> finalStates = new ArrayList<>();
+        List<DfaState> finals = new ArrayList<>();
         for (DfaState state : allStates) {
-            if (state.isFinal()) {
-                finalStates.add(state);
-            }
+            if (state.isFinal()) finals.add(state);
         }
-        return finalStates;
+        return finals;
     }
 
     /**
      * Checks if the DFA is complete (has transitions for all symbols in all states).
-     * @return true if the DFA is complete, false otherwise.
+     *
+     * @return true if complete, false otherwise.
      */
     public boolean isComplete() {
         for (DfaState state : allStates) {
             for (char symbol : alphabet) {
-                if (state.getTransition(symbol) == null) {
-                    return false;
-                }
+                if (state.getTransition(symbol) == null) return false;
             }
         }
         return true;
     }
 
     /**
-     * Makes the DFA complete by adding a sink state if needed.
-     * @return A complete DFA (may be the same instance if already complete).
+     * Makes the DFA complete by adding a sink state if necessary.
+     *
+     * @return A complete DFA.
      */
     public DFA makeComplete() {
-        if (isComplete()) {
-            return this;
-        }
-        
-        // Create a sink state
-        DfaState sinkState = new DfaState(new HashSet<>());
-        sinkState.setFinal(false);
-        
-        List<DfaState> newAllStates = new ArrayList<>(allStates);
-        newAllStates.add(sinkState);
-        
-        // Add missing transitions to sink state
+        if (isComplete()) return this;
+
+        DfaState sink = new DfaState(new HashSet<>());
+        sink.setFinal(false);
+
+        List<DfaState> newStates = new ArrayList<>(allStates);
+        newStates.add(sink);
+
         for (DfaState state : allStates) {
             for (char symbol : alphabet) {
                 if (state.getTransition(symbol) == null) {
-                    state.addTransition(symbol, sinkState);
+                    state.addTransition(symbol, sink);
                 }
             }
         }
-        
-        // Add self-loops for sink state
+
         for (char symbol : alphabet) {
-            sinkState.addTransition(symbol, sinkState);
+            sink.addTransition(symbol, sink);
         }
-        
-        return new DFA(startState, newAllStates, alphabet);
+
+        return new DFA(startState, newStates, alphabet);
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("DFA:\nAlphabet: ").append(alphabet).append("\nStart State: D").append(startState.getId()).append("\n");
+        sb.append("Final States: ").append(getFinalStates().stream().map(s -> "D" + s.getId()).toList()).append("\nStates:\n");
+
+        for (DfaState state : allStates) {
+            sb.append("  D").append(state.getId());
+            if (state.isFinal()) sb.append(" (Final)");
+            sb.append(": ");
+            boolean hasTransition = false;
+            for (char symbol : alphabet) {
+                DfaState target = state.getTransition(symbol);
+                if (target != null) {
+                    sb.append(symbol).append("→D").append(target.getId()).append(" ");
+                    hasTransition = true;
+                }
+            }
+            if (!hasTransition) sb.append("No transitions");
+            sb.append("\n");
+        }
+        return sb.toString();
     }
 }
