@@ -13,12 +13,12 @@ public class Transition {
     /**
      * The symbol that triggers this transition. Null for epsilon transitions.
      */
-    public final Character symbol;
+    private final Character symbol;
 
     /**
      * The destination state for this transition.
      */
-    public final State to;
+    private final State to;
 
     /**
      * Constructs a new transition with the given symbol and destination state.
@@ -65,7 +65,7 @@ public class Transition {
     public String toString() {
         return "Transition{" +
                "symbol=" + (symbol == null ? "ε" : symbol) +
-               ", to=" + to.id +
+               ", to=State" + to.getId() +   // ✅ Usamos getter en lugar de campo privado
                '}';
     }
 

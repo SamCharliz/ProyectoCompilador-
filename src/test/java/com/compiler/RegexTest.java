@@ -24,7 +24,8 @@ public class RegexTest {
         // Parse regex -> NFA
         RegexParser parser = new RegexParser();
         NFA nfa = parser.parse(regex);
-        nfa.endState.isFinal = true;
+        nfa.getEndState().setFinal(true);
+
 
         // Simulación NFA
         NfaSimulator nfaSimulator = new NfaSimulator();

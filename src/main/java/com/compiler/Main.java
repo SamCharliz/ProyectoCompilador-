@@ -1,8 +1,12 @@
 package com.compiler;
 
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
+import java.util.ArrayList;
 
+import com.compiler.lexer.Token;
+import com.compiler.lexer.TokenRule;
+import com.compiler.lexer.Tokenizer;
 import com.compiler.lexer.DfaMinimizer;
 import com.compiler.lexer.DfaSimulator;
 import com.compiler.lexer.NfaToDfaConverter;
@@ -11,67 +15,76 @@ import com.compiler.lexer.dfa.DfaState;
 import com.compiler.lexer.nfa.NFA;
 import com.compiler.lexer.regex.RegexParser;
 
-/**
- * Main class for demonstrating regex to NFA, DFA conversion, minimization, and simulation.
- */
 public class Main {
-    public Main() {}
-
     public static void main(String[] args) {
-        // --- CONFIGURATION ---
+        // --- CONFIGURACIÓN DEL ALFABETO ---
+        Set<Character> alphabet = Set.of('a','b','c','d');
+
+        // --- DEFINIR REGLAS DE TOKENS ---
+        List<TokenRule> rules = new ArrayList<>();
+        rules.add(new TokenRule("a+", "PLUS_A"));
+        rules.add(new TokenRule("a?", "OPTIONAL_A"));
+        rules.add(new TokenRule("a|b", "A_OR_B"));
+        rules.add(new TokenRule("ab|c", "AB_OR_C"));
+        rules.add(new TokenRule("ab*c", "AB_STAR_C"));
+        rules.add(new TokenRule("(a|b)*", "A_B_STAR"));
+        rules.add(new TokenRule("a(b|c)d", "AB_OR_CD"));
+        rules.add(new TokenRule("a(b*|c+)?d", "COMPLEX"));
+        rules.add(new TokenRule("(a*)*", "NESTED_STAR"));
+        rules.add(new TokenRule("a(b?)c", "OPTIONAL_B_C"));
+        rules.add(new TokenRule("(a|b)*a(a|b)*", "CONTAINS_A"));
+
+        // --- CREAR TOKENIZER ---
+        Tokenizer tokenizer = new Tokenizer(rules, alphabet);
+
+        // --- TEST DE STRINGS ---
+        String[] testStrings = {"a", "aa", "ab", "abc", "abcd", "ac", "abd", "ad", "b", ""};
+
+        System.out.println("=== TOKENIZACIÓN ===");
+        for(String s : testStrings) {
+            try {
+                List<Token> tokens = tokenizer.tokenize(s);
+                System.out.println("Input: '" + s + "' -> Tokens: " + tokens);
+            } catch(Exception e) {
+                System.out.println("Input: '" + s + "' -> ERROR: " + e.getMessage());
+            }
+        }
+
+        // --- EJEMPLO: DFA Y MINIMIZACIÓN ---
         String regex = "a(b|c)*";
-        Set<Character> alphabet = Set.of('a', 'b', 'c');
-        String[] testStrings = {"a", "ab", "ac", "abbc", "acb", "", "b", "abcabc"};
-
-        System.out.println("Testing Regex: " + regex + "\n");
-
-        // --- STEP 1: Regex -> NFA ---
         RegexParser parser = new RegexParser();
         NFA nfa = parser.parse(regex);
-        nfa.endState.setFinal(true); // usa el setter si endState es DfaState/NFA
+        nfa.getEndState().setAccepting(true);
 
-        // --- STEP 2: NFA -> DFA ---
-        DFA dfa = NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
-        System.out.println("--- Original DFA ---");
+        DFA dfa = NfaToDfaConverter.convertNfaToDfa(nfa, Set.of('a','b','c'));
+        System.out.println("\n--- DFA ORIGINAL ---");
         visualizeDfa(dfa);
 
-        // --- STEP 3: DFA Minimization ---
-        DFA minimizedDfa = DfaMinimizer.minimizeDfa(dfa, alphabet);
-        System.out.println("--- Minimized DFA ---");
+        DFA minimizedDfa = DfaMinimizer.minimizeDfa(dfa, Set.of('a','b','c'));
+        System.out.println("\n--- DFA MINIMIZADO ---");
         visualizeDfa(minimizedDfa);
 
-        // --- STEP 4: DFA Simulation ---
-        DfaSimulator dfaSimulator = new DfaSimulator();
-        System.out.println("--- Testing Simulator with Minimized DFA ---");
-
-        for (String s : testStrings) {
-            boolean accepted = dfaSimulator.simulate(minimizedDfa, s);
+        DfaSimulator simulator = new DfaSimulator();
+        System.out.println("\n--- SIMULACIÓN MINIMIZADA ---");
+        for(String s : testStrings) {
+            boolean accepted = simulator.simulate(minimizedDfa, s);
             System.out.println("String '" + s + "': " + (accepted ? "Accepted" : "Rejected"));
         }
     }
 
-    /**
-     * Prints a textual representation of the DFA structure for debugging purposes.
-     * States and transitions are shown in a readable format.
-     *
-     * @param dfa The DFA to visualize.
-     */
     public static void visualizeDfa(DFA dfa) {
         System.out.println("Start State: D" + dfa.startState.getId());
-        for (DfaState state : dfa.allStates) {
+        for(DfaState state : dfa.allStates) {
             StringBuilder sb = new StringBuilder();
             sb.append("State D").append(state.getId());
-            if (state.isFinal()) {
-                sb.append(" (Final)");
-            }
+            if(state.isFinal()) sb.append(" (Final)");
             sb.append(":");
-            // Usar getter para transitions
-            state.getTransitions().entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .forEach(entry -> {
-                    sb.append("\n  --'").append(entry.getKey())
-                      .append("'--> D").append(entry.getValue().getId());
-                });
+            for(char symbol : dfa.alphabet) {
+                DfaState target = state.getTransition(symbol);
+                if(target != null) {
+                    sb.append("\n  --'").append(symbol).append("'--> D").append(target.getId());
+                }
+            }
             System.out.println(sb.toString());
         }
         System.out.println("------------------------\n");
