@@ -5,22 +5,41 @@ import java.util.Stack;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * RegexParser is responsible for parsing a regular expression string and converting it into
+ * a corresponding Nondeterministic Finite Automaton (NFA). It supports operators such as
+ * union (|), concatenation (.), Kleene star (*), plus (+), and optional (?).
+ */
 public class RegexParser {
+
+    /** Precedence mapping for regex operators */
     private static final Map<Character, Integer> PRECEDENCE = new HashMap<>();
     static {
         PRECEDENCE.put('|', 1);
-        PRECEDENCE.put('.', 2); // concatenación explícita
+        PRECEDENCE.put('.', 2); // explicit concatenation
         PRECEDENCE.put('*', 3);
         PRECEDENCE.put('+', 3);
         PRECEDENCE.put('?', 3);
     }
 
+    /**
+     * Parses the input regex string and returns the equivalent NFA.
+     *
+     * @param regex The regular expression to parse.
+     * @return NFA corresponding to the given regex.
+     */
     public NFA parse(String regex) {
         String postfix = toPostfix(regex);
         return buildNFA(postfix);
     }
 
-    /** Convierte un regex a postfix usando Shunting Yard */
+    /**
+     * Converts an infix regular expression to postfix notation using the Shunting Yard algorithm.
+     *
+     * @param regex The infix regular expression.
+     * @return The postfix representation of the regex.
+     * @throws IllegalArgumentException if parentheses are mismatched or escapes are invalid.
+     */
     public static String toPostfix(String regex) {
         if (regex == null || regex.isEmpty()) return regex;
 
@@ -32,7 +51,7 @@ public class RegexParser {
             char c = withConcat.charAt(i);
 
             if (c == '\\') {
-                // Escape, añadir siguiente literal
+                // Escape character, append next literal
                 if (i + 1 >= withConcat.length()) throw new IllegalArgumentException("Invalid escape");
                 output.append(c).append(withConcat.charAt(i + 1));
                 i++;
@@ -46,7 +65,7 @@ public class RegexParser {
                     output.append(stack.pop());
                 }
                 if (stack.isEmpty()) throw new IllegalArgumentException("Mismatched parentheses");
-                stack.pop(); // quitar '('
+                stack.pop(); // remove '('
             } else if (isOperator(c)) {
                 while (!stack.isEmpty() && stack.peek() != '(' &&
                        PRECEDENCE.get(stack.peek()) >= PRECEDENCE.get(c)) {
@@ -54,7 +73,7 @@ public class RegexParser {
                 }
                 stack.push(c);
             } else {
-                // Operando literal
+                // Literal operand
                 output.append(c);
             }
         }
@@ -68,7 +87,12 @@ public class RegexParser {
         return output.toString();
     }
 
-    /** Inserta concatenación explícita '.' donde aplica */
+    /**
+     * Inserts explicit concatenation operators ('.') where applicable in the regex.
+     *
+     * @param regex The input regex string.
+     * @return Regex with explicit concatenation operators.
+     */
     private static String insertConcat(String regex) {
         StringBuilder sb = new StringBuilder();
         char prev = 0;
@@ -86,15 +110,23 @@ public class RegexParser {
         return sb.toString();
     }
 
+    /** Checks if a character is a literal operand (not an operator or bracket). */
     private static boolean isOperand(char c) {
         return !isOperator(c) && c != '(' && c != ')' && c != '[' && c != ']';
     }
 
+    /** Checks if a character is a recognized regex operator. */
     private static boolean isOperator(char c) {
         return c == '|' || c == '*' || c == '+' || c == '?' || c == '.';
     }
 
-    /** Construye un NFA a partir de postfix seguro */
+    /**
+     * Builds an NFA from a postfix regular expression.
+     *
+     * @param postfix The postfix regex string.
+     * @return NFA representing the postfix regex.
+     * @throws IllegalArgumentException if the postfix expression is invalid.
+     */
     public static NFA buildNFA(String postfix) {
         Stack<NFA> stack = new Stack<>();
         for (int i = 0; i < postfix.length(); i++) {

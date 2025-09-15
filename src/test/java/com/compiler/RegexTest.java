@@ -15,48 +15,79 @@ import com.compiler.lexer.NfaSimulator;
 import com.compiler.lexer.NfaToDfaConverter;
 import com.compiler.lexer.regex.RegexParser;
 
+/**
+ * Unit tests for verifying the correctness of regex parsing and simulation
+ * across NFA, DFA, and minimized DFA representations.
+ * 
+ * <p>This class uses a parameterized testing approach to validate that a regex
+ * correctly accepts or rejects given input strings, and ensures consistency
+ * between NFA simulation, DFA simulation, and DFA minimization.
+ */
 public class RegexTest {
+
+    /**
+     * Runs a single test case for a given regex and input string.
+     * 
+     * <p>This method performs the following steps:
+     * <ol>
+     *   <li>Parses the regex into an NFA and sets the final state.</li>
+     *   <li>Simulates the NFA on the input string.</li>
+     *   <li>Builds the alphabet from the given symbols and converts the NFA to a DFA.</li>
+     *   <li>Simulates the DFA on the input string.</li>
+     *   <li>Minimizes the DFA and simulates the minimized DFA.</li>
+     *   <li>Prints detailed information including regex, input, expected value,
+     *       NFA/DFA results, number of states, and transitions.</li>
+     *   <li>Asserts that all three simulations match the expected result.</li>
+     * </ol>
+     *
+     * @param regex   The regular expression to test.
+     * @param input   The input string to validate.
+     * @param expected The expected result (true if the string should be accepted, false otherwise).
+     * @param symbols The set of characters forming the alphabet for DFA conversion.
+     */
     private void runTest(String regex, String input, boolean expected, char... symbols) {
-    System.out.println("======================================");
+        System.out.println("======================================");
 
-    // Parse regex -> NFA
-    RegexParser parser = new RegexParser();
-    NFA nfa = parser.parse(regex);
-    nfa.getEndState().setFinal(true);
+        // Parse regex -> NFA
+        RegexParser parser = new RegexParser();
+        NFA nfa = parser.parse(regex);
+        nfa.getEndState().setFinal(true);
 
-    // Simulación NFA
-    NfaSimulator nfaSimulator = new NfaSimulator();
-    boolean actualNfa = nfaSimulator.simulate(nfa, input);
+        // NFA simulation
+        NfaSimulator nfaSimulator = new NfaSimulator();
+        boolean actualNfa = nfaSimulator.simulate(nfa, input);
 
-    // Construir alfabeto y convertir a DFA
-    Set<Character> alphabet = new HashSet<>();
-    for (char c : symbols) alphabet.add(c);
-    DFA dfa = NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
-    DfaSimulator dfaSimulator = new DfaSimulator();
-    boolean actualDfa = dfaSimulator.simulate(dfa, input);
+        // Build alphabet and convert to DFA
+        Set<Character> alphabet = new HashSet<>();
+        for (char c : symbols) alphabet.add(c);
+        DFA dfa = NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
+        DfaSimulator dfaSimulator = new DfaSimulator();
+        boolean actualDfa = dfaSimulator.simulate(dfa, input);
 
-    // Minimizar DFA
-    DFA minDFA = dfa.minimize();
-    boolean actualMinDfa = dfaSimulator.simulate(minDFA, input);
+        // Minimize DFA
+        DFA minDFA = dfa.minimize();
+        boolean actualMinDfa = dfaSimulator.simulate(minDFA, input);
 
-    // Impresión de detalles
-    System.out.println("Regex: '" + regex + "'");
-    System.out.println("Input: '" + input + "'");
-    System.out.println("Esperado: " + expected);
-    System.out.println("Resultado NFA: " + actualNfa);
-    System.out.println("DFA original - Estados: " + dfa.getStates().size());
-    dfa.printTransitions();
-    System.out.println("DFA minimizado - Estados: " + minDFA.getStates().size());
-    minDFA.printTransitions();
-    System.out.println("Resultado DFA: " + actualDfa);
-    System.out.println("Resultado DFA minimizado: " + actualMinDfa);
-    System.out.println("======================================\n");
+        // Print details
+        System.out.println("Regex: '" + regex + "'");
+        System.out.println("Input: '" + input + "'");
+        System.out.println("Expected: " + expected);
+        System.out.println("NFA Result: " + actualNfa);
+        System.out.println("DFA original - States: " + dfa.getStates().size());
+        dfa.printTransitions();
+        System.out.println("Minimized DFA - States: " + minDFA.getStates().size());
+        minDFA.printTransitions();
+        System.out.println("DFA Result: " + actualDfa);
+        System.out.println("Minimized DFA Result: " + actualMinDfa);
+        System.out.println("======================================\n");
 
-    // Comprobaciones
-    assertEquals(expected, actualNfa, "NFA falló para la cadena: '" + input + "'");
-    assertEquals(expected, actualDfa, "DFA falló para la cadena: '" + input + "'");
-    assertEquals(expected, actualMinDfa, "DFA minimizado falló para la cadena: '" + input + "'");
-}
+        // Assertions
+        assertEquals(expected, actualNfa, "NFA failed for input: '" + input + "'");
+        assertEquals(expected, actualDfa, "DFA failed for input: '" + input + "'");
+        assertEquals(expected, actualMinDfa, "Minimized DFA failed for input: '" + input + "'");
+    }
+
+
 
     @ParameterizedTest
     @CsvSource({
