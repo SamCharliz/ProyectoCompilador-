@@ -1,3 +1,5 @@
+
+
 package com.compiler.lexer.dfa;
 
 import java.util.List;
@@ -36,6 +38,7 @@ public class DFA {
         this.allStates = allStates;
         this.alphabet = alphabet;
     }
+    
 
     /**
      * Checks if the DFA accepts a given input string.

@@ -3,10 +3,13 @@ package com.compiler.lexer.nfa;
 /**
  * Represents a Non-deterministic Finite Automaton (NFA) with a start and end state.
  * <p>
- * An NFA is used in lexical analysis to model regular expressions and pattern matching.
- * This class encapsulates the start and end states of the automaton.
+ * This class provides static factory methods to construct NFAs for characters,
+ * epsilon transitions, concatenation, union (OR), Kleene star, plus, and optional operations.
+ * <p>
+ * NFAs are used in lexical analysis to model regular expressions.
  */
 public class NFA {
+
     /** The initial (start) state of the NFA. */
     public final State startState;
 
@@ -46,6 +49,10 @@ public class NFA {
                '}';
     }
 
+    // ==========================
+    // Factory methods (public)
+    // ==========================
+
     /** Creates a basic NFA for a single character. */
     public static NFA createForCharacter(char c) {
         State start = new State();
@@ -64,7 +71,7 @@ public class NFA {
         return new NFA(start, end);
     }
 
-    /** Union (OR) operation. */
+    /** Union (OR) operation between two NFAs. */
     public static NFA union(NFA nfa1, NFA nfa2) {
         State start = new State();
         State end = new State();
@@ -81,14 +88,14 @@ public class NFA {
         return new NFA(start, end);
     }
 
-    /** Concatenation operation. */
+    /** Concatenation operation (nfa1 followed by nfa2). */
     public static NFA concatenate(NFA nfa1, NFA nfa2) {
         nfa1.endState.setAccepting(false);
         nfa1.endState.addEpsilonTransition(nfa2.startState);
         return new NFA(nfa1.startState, nfa2.endState);
     }
 
-    /** Kleene star operation. */
+    /** Kleene star operation (zero or more repetitions). */
     public static NFA kleeneStar(NFA nfa) {
         State start = new State();
         State end = new State();
@@ -104,7 +111,7 @@ public class NFA {
         return new NFA(start, end);
     }
 
-    /** Plus operation. */
+    /** Plus operation (one or more repetitions). */
     public static NFA plus(NFA nfa) {
         State start = new State();
         State end = new State();
@@ -119,7 +126,7 @@ public class NFA {
         return new NFA(start, end);
     }
 
-    /** Optional operation. */
+    /** Optional operation (zero or one occurrence). */
     public static NFA optional(NFA nfa) {
         State start = new State();
         State end = new State();

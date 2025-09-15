@@ -1,139 +1,118 @@
 package com.compiler.lexer.regex;
 
-import java.util.Stack;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Stack;
 
-/**
- * Utility class for regular expression parsing using the Shunting Yard algorithm.
- * Converts infix regular expressions to postfix notation.
- */
 public class ShuntingYard {
-    private static final Map<Character, Integer> PRECEDENCE = new HashMap<>();
-    
+    private static final Map<String, Integer> PRECEDENCE = new HashMap<>();
+
     static {
-        PRECEDENCE.put('|', 1);  // Union - lowest precedence
-        PRECEDENCE.put('.', 2);  // Concatenation - medium precedence
-        PRECEDENCE.put('*', 3);  // Kleene star - highest precedence
-        PRECEDENCE.put('?', 3);  // Optional - highest precedence
-        PRECEDENCE.put('+', 3);  // Plus - highest precedence
+        PRECEDENCE.put("|", 1);
+        PRECEDENCE.put(".", 2); // concatenación explícita
+        PRECEDENCE.put("*", 3);
+        PRECEDENCE.put("?", 3);
+        PRECEDENCE.put("+", 3);
     }
 
     /**
-     * Default constructor for ShuntingYard.
+     * Convierte un regex infijo to postfix, soportando escapes y clases de caracteres.
      */
-    public ShuntingYard() {
-        // No initialization needed
-    }
+    public static String toPostfix(String regex) {
+        if (regex == null || regex.isEmpty()) return regex;
 
-    /**
-     * Inserts the explicit concatenation operator ('.') into the regular expression.
-     */
-    public static String insertConcatenationOperator(String regex) {
-        if (regex == null || regex.isEmpty()) {
-            return regex;
-        }
-        
-        StringBuilder result = new StringBuilder();
-        
-        for (int i = 0; i < regex.length(); i++) {
-            char current = regex.charAt(i);
-            result.append(current);
-            
-            if (i < regex.length() - 1) {
-                char next = regex.charAt(i + 1);
-                
-                boolean needsConcatenation = false;
-                
-                // Conditions for implicit concatenation:
-                if (isOperand(current) && (isOperand(next) || next == '(')) {
-                    needsConcatenation = true;
-                } else if (current == ')' && (isOperand(next) || next == '(')) {
-                    needsConcatenation = true;
-                } else if (current == '*' && (isOperand(next) || next == '(')) {
-                    needsConcatenation = true;
-                } else if (current == '?' && (isOperand(next) || next == '(')) {
-                    needsConcatenation = true;
-                } else if (current == '+' && (isOperand(next) || next == '(')) {
-                    needsConcatenation = true;
+        String withConcat = insertConcatenationOperator(regex);
+        // Removed debug print: System.out.println("With explicit concatenation: " + withConcat);
+
+        StringBuilder output = new StringBuilder();
+        Stack<String> stack = new Stack<>();
+
+        for (int i = 0; i < withConcat.length();) {
+            String token = getToken(withConcat, i);
+            i += token.length();
+
+            if (isOperand(token)) {
+                output.append(token);
+            } else if (token.equals("(")) {
+                stack.push(token);
+            } else if (token.equals(")")) {
+                while (!stack.isEmpty() && !stack.peek().equals("(")) {
+                    output.append(stack.pop());
                 }
-                
-                if (needsConcatenation) {
-                    result.append('.');
+                if (stack.isEmpty()) throw new IllegalArgumentException("Mismatched parentheses");
+                stack.pop(); // sacar '('
+            } else if (isOperator(token)) {
+                while (!stack.isEmpty() && !stack.peek().equals("(") &&
+                       PRECEDENCE.get(stack.peek()) >= PRECEDENCE.get(token)) {
+                    output.append(stack.pop());
                 }
+                stack.push(token);
+            } else {
+                throw new IllegalArgumentException("Unknown token: " + token);
             }
         }
-        
+
+        while (!stack.isEmpty()) {
+            String t = stack.pop();
+            if (t.equals("(")) throw new IllegalArgumentException("Mismatched parentheses");
+            output.append(t);
+        }
+
+        return output.toString();
+    }
+
+
+    /**
+     * Inserta concatenaciones explícitas '.' en un regex.
+     */
+    public static String insertConcatenationOperator(String regex) {
+        if (regex == null || regex.isEmpty()) return regex;
+
+        StringBuilder result = new StringBuilder();
+        String prevToken = getToken(regex, 0);
+        result.append(prevToken);
+
+        for (int i = prevToken.length(); i < regex.length();) {
+            String currentToken = getToken(regex, i);
+            boolean needsConcat = (isOperand(prevToken) || prevToken.equals("*") || prevToken.equals("?") || prevToken.equals("+") || prevToken.equals(")")) &&
+                                  (isOperand(currentToken) || currentToken.equals("("));
+            if (needsConcat) result.append('.');
+            result.append(currentToken);
+
+            i += currentToken.length();
+            prevToken = currentToken;
+        }
+
         return result.toString();
     }
 
     /**
-     * Determines if the given character is an operand.
+     * Devuelve un token completo, soportando:
+     *  - Escapes: \+, \*, \(, \)
+     *  - Clases de caracteres: [a-z], [0-9A-Z]
      */
-    private static boolean isOperand(char c) {
-        return c != '|' && c != '*' && c != '.' && c != '?' && c != '+' && 
-               c != '(' && c != ')';
+    public static String getToken(String regex, int index) {
+        char c = regex.charAt(index);
+
+        if (c == '\\') {
+            if (index + 1 >= regex.length())
+                throw new IllegalArgumentException("Dangling escape at end of regex");
+            return "\\" + regex.charAt(index + 1);
+        } else if (c == '[') {
+            int end = regex.indexOf(']', index);
+            if (end == -1)
+                throw new IllegalArgumentException("Unterminated character class");
+            return regex.substring(index, end + 1);
+        } else {
+            return String.valueOf(c);
+        }
     }
 
-    /**
-     * Determines if the given character is an operator.
-     */
-    private static boolean isOperator(char c) {
-        return c == '|' || c == '*' || c == '.' || c == '?' || c == '+';
+    private static boolean isOperand(String token) {
+        return !isOperator(token) && !token.equals("(") && !token.equals(")");
     }
 
-    /**
-     * Converts an infix regular expression to postfix notation.
-     */
-    public static String toPostfix(String infixRegex) {
-        if (infixRegex == null || infixRegex.isEmpty()) {
-            return infixRegex;
-        }
-        
-        // First, insert explicit concatenation operators
-        String withConcatenation = insertConcatenationOperator(infixRegex);
-        System.out.println("With explicit concatenation: " + withConcatenation);
-        
-        StringBuilder output = new StringBuilder();
-        Stack<Character> operatorStack = new Stack<>();
-        
-        for (int i = 0; i < withConcatenation.length(); i++) {
-            char c = withConcatenation.charAt(i);
-            
-            if (isOperand(c)) {
-                output.append(c);
-            } else if (c == '(') {
-                operatorStack.push(c);
-            } else if (c == ')') {
-                // Pop operators until '(' is found
-                while (!operatorStack.isEmpty() && operatorStack.peek() != '(') {
-                    output.append(operatorStack.pop());
-                }
-                if (!operatorStack.isEmpty() && operatorStack.peek() == '(') {
-                    operatorStack.pop(); // Remove '('
-                } else {
-                    throw new IllegalArgumentException("Mismatched parentheses");
-                }
-            } else if (isOperator(c)) {
-                // Pop operators with higher or equal precedence
-                while (!operatorStack.isEmpty() && 
-                       operatorStack.peek() != '(' && 
-                       PRECEDENCE.getOrDefault(operatorStack.peek(), 0) >= PRECEDENCE.getOrDefault(c, 0)) {
-                    output.append(operatorStack.pop());
-                }
-                operatorStack.push(c);
-            }
-        }
-        
-        // Pop any remaining operators
-        while (!operatorStack.isEmpty()) {
-            char op = operatorStack.pop();
-            if (op == '(') {
-                throw new IllegalArgumentException("Mismatched parentheses");
-            }
-            output.append(op);
-        }
-        
-        return output.toString();
+    private static boolean isOperator(String token) {
+        return PRECEDENCE.containsKey(token);
     }
 }

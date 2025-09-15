@@ -1,6 +1,6 @@
 package com.compiler.lexer;
 
-public class Token {
+public class Token{
     private final String type;
     private final String lexeme;
 
@@ -19,9 +19,6 @@ public class Token {
 
     @Override
     public String toString() {
-        return "Token{" +
-               "type='" + type + '\'' +
-               ", lexeme='" + lexeme + '\'' +
-               '}';
+        return String.format("Token(type='%s', lexeme='%s')", type, lexeme);
     }
 }

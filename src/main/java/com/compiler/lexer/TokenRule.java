@@ -1,19 +1,19 @@
 package com.compiler.lexer;
 
 public class TokenRule {
-    private final String regex;
     private final String tokenType;
+    private final String regex;
 
-    public TokenRule(String regex, String tokenType) {
-        this.regex = regex;
+    public TokenRule(String tokenType, String regex) {
         this.tokenType = tokenType;
-    }
-
-    public String getRegex() {
-        return regex;
+        this.regex = regex;
     }
 
     public String getTokenType() {
         return tokenType;
+    }
+
+    public String getRegex() {
+        return regex;
     }
 }
