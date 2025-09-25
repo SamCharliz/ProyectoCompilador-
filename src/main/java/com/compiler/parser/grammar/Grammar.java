@@ -19,29 +19,11 @@ import java.util.Set;
  * Represents a complete context-free grammar.
  */
 public class Grammar {
-    /**
-     * Set of non-terminal symbols in the grammar.
-     */
     private final Set<Symbol> nonTerminals;
-    /**
-     * Set of terminal symbols in the grammar.
-     */
     private final Set<Symbol> terminals;
-    /**
-     * List of all productions in the grammar.
-     */
     private final List<Production> productions;
-    /**
-     * The start symbol of the grammar.
-     */
     private final Symbol startSymbol;
 
-    /**
-     * Constructs a Grammar from a string definition.
-     *
-     * @param grammarDefinition The grammar definition in BNF-like format.
-     * @throws IllegalArgumentException if the definition is null, empty, or invalid.
-     */
     public Grammar(String grammarDefinition) {
         if (grammarDefinition == null || grammarDefinition.trim().isEmpty()) {
             throw new IllegalArgumentException("Grammar definition cannot be null or empty.");
@@ -57,9 +39,6 @@ public class Grammar {
         validateProductions(this.productions);
     }
 
-    /**
-     * Helper class to hold parsed grammar data.
-     */
     private static class GrammarData {
         Set<Symbol> nonTerminals;
         Set<Symbol> terminals;
@@ -67,13 +46,6 @@ public class Grammar {
         Symbol startSymbol;
     }
 
-    /**
-     * Parses the grammar definition string and builds the grammar data.
-     *
-     * @param grammarDefinition The grammar definition string.
-     * @return GrammarData containing parsed symbols and productions.
-     * @throws IllegalArgumentException if the definition is invalid.
-     */
     private GrammarData parseGrammarDefinition(String grammarDefinition) {
         Set<String> nonTerminalNames = new java.util.LinkedHashSet<>();
         Set<String> terminalNames = new java.util.LinkedHashSet<>();
@@ -94,14 +66,6 @@ public class Grammar {
         return data;
     }
 
-    /**
-     * Parses each line of the grammar definition and populates non-terminals and productions.
-     *
-     * @param grammarDefinition The grammar definition string.
-     * @param nonTerminalNames Set to collect non-terminal names.
-     * @param productionMap Map to collect productions for each non-terminal.
-     * @throws IllegalArgumentException if a line is malformed.
-     */
     private void parseLines(String grammarDefinition, Set<String> nonTerminalNames, Map<String, List<List<String>>> productionMap) {
         String[] lines = grammarDefinition.split("\\r?\\n");
         for (String line : lines) {
@@ -129,13 +93,6 @@ public class Grammar {
         }
     }
 
-    /**
-     * Collects terminal symbols from the productions.
-     *
-     * @param nonTerminalNames Set of non-terminal names.
-     * @param productionMap Map of productions.
-     * @param terminalNames Set to collect terminal names.
-     */
     private void collectTerminals(Set<String> nonTerminalNames, Map<String, List<List<String>>> productionMap, Set<String> terminalNames) {
         for (List<List<String>> rhsList : productionMap.values()) {
             for (List<String> prod : rhsList) {
@@ -148,13 +105,6 @@ public class Grammar {
         }
     }
 
-    /**
-     * Builds a map from symbol names to Symbol objects.
-     *
-     * @param nonTerminalNames Set of non-terminal names.
-     * @param terminalNames Set of terminal names.
-     * @return Map from symbol name to Symbol object.
-     */
     private Map<String, Symbol> buildSymbolMap(Set<String> nonTerminalNames, Set<String> terminalNames) {
         Map<String, Symbol> symbolMap = new java.util.HashMap<>();
         for (String nt : nonTerminalNames) {
@@ -163,18 +113,10 @@ public class Grammar {
         for (String t : terminalNames) {
             symbolMap.put(t, new Symbol(t, SymbolType.TERMINAL));
         }
-        symbolMap.put("ε", new Symbol("ε", SymbolType.TERMINAL)); // epsilon
+        symbolMap.put("ε", new Symbol("ε", SymbolType.TERMINAL));
         return symbolMap;
     }
 
-    /**
-     * Builds the list of Production objects from the production map and symbol map.
-     *
-     * @param productionMap Map of productions.
-     * @param symbolMap Map from symbol name to Symbol object.
-     * @return List of Production objects.
-     * @throws IllegalArgumentException if a symbol is undefined.
-     */
     private List<Production> buildProductions(Map<String, List<List<String>>> productionMap, Map<String, Symbol> symbolMap) {
         List<Production> prodList = new java.util.ArrayList<>();
         for (String lhs : productionMap.keySet()) {
@@ -194,12 +136,6 @@ public class Grammar {
         return prodList;
     }
 
-    /**
-     * Validates that all productions have defined symbols.
-     *
-     * @param productions List of productions to validate.
-     * @throws IllegalArgumentException if a production contains undefined symbols.
-     */
     private void validateProductions(List<Production> productions) {
         for (Production p : productions) {
             if (p.getLeft() == null || p.getRight().contains(null)) {
@@ -208,34 +144,18 @@ public class Grammar {
         }
     }
 
-    /**
-     * Returns the set of non-terminal symbols.
-     * @return Unmodifiable set of non-terminals.
-     */
     public Set<Symbol> getNonTerminals() {
         return nonTerminals;
     }
 
-    /**
-     * Returns the set of terminal symbols.
-     * @return Unmodifiable set of terminals.
-     */
     public Set<Symbol> getTerminals() {
         return terminals;
     }
 
-    /**
-     * Returns the list of productions.
-     * @return Unmodifiable list of productions.
-     */
     public List<Production> getProductions() {
         return productions;
     }
 
-    /**
-     * Returns the start symbol of the grammar.
-     * @return The start symbol.
-     */
     public Symbol getStartSymbol() {
         return startSymbol;
     }
